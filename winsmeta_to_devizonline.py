@@ -12,7 +12,7 @@ import re
 from dataclasses import dataclass
 from typing import Any, Dict, List, Optional, Tuple
 
-from pypxlib import Table
+from paradox_db import read_paradox_table
 
 DEVIZ_COLUMNS = [
     "Tip",
@@ -236,26 +236,11 @@ def _dec(value: Any) -> Any:
     return value
 
 
-def _safe_row(table: Table, row) -> Dict[str, Any]:
-    result: Dict[str, Any] = {}
-    for name in table.fields:
-        try:
-            result[name] = _dec(row[name])
-        except Exception:
-            result[name] = None
-    return result
-
-
 def _read_table_rows(path: str) -> List[Dict[str, Any]]:
     print(f"PX open {path}", flush=True)
-    table = Table(path, encoding="cp1250")
-    try:
-        rows = [_safe_row(table, row) for row in table]
-    finally:
-        try:
-            table.close()
-        except Exception:
-            pass
+    rows = []
+    for row in read_paradox_table(path):
+        rows.append({key: _dec(val) for key, val in row.items()})
     print(f"PX close {path} rows={len(rows)}", flush=True)
     return rows
 
