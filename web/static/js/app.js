@@ -128,6 +128,33 @@
     }
   });
 
+  const infoBtn = document.getElementById("info-btn");
+  const infoModal = document.getElementById("info-modal");
+  const infoClose = document.getElementById("info-close");
+
+  function openInfo() {
+    infoModal.classList.remove("hidden");
+    infoModal.setAttribute("aria-hidden", "false");
+    infoClose.focus();
+  }
+
+  function closeInfo() {
+    infoModal.classList.add("hidden");
+    infoModal.setAttribute("aria-hidden", "true");
+    infoBtn.focus();
+  }
+
+  infoBtn.addEventListener("click", openInfo);
+  infoClose.addEventListener("click", closeInfo);
+  infoModal.addEventListener("click", (e) => {
+    if (e.target === infoModal) closeInfo();
+  });
+  document.addEventListener("keydown", (e) => {
+    if (e.key === "Escape" && !infoModal.classList.contains("hidden")) {
+      closeInfo();
+    }
+  });
+
   form.addEventListener("submit", async (e) => {
     e.preventDefault();
     hideAlerts();

@@ -98,6 +98,33 @@
       <p class="footer-meta">WinDev · convertor de test · build {{ build }}</p>
     </footer>
   </div>
+
+  <button type="button" class="info-fab" id="info-btn" aria-haspopup="dialog" aria-controls="info-modal" title="Informații">
+    i
+  </button>
+
+  <div class="modal-overlay hidden" id="info-modal" aria-hidden="true">
+    <div class="modal" role="dialog" aria-modal="true" aria-labelledby="info-title">
+      <button type="button" class="modal-close" id="info-close" aria-label="Închide">&times;</button>
+      <h2 id="info-title">Informații după conversie</h2>
+      <ol class="info-points">
+        <li>
+          Fișierul descărcat trebuie importat în <strong>Deviz360</strong> prin
+          <strong>Import → Devize și echipamente</strong>.
+        </li>
+        <li>
+          După import, configurați <strong>recapitulația</strong> la fiecare deviz.
+          În unele versiuni de Winsmeta ea lipsește, deci verificați și introduceți
+          recapitulațiile.
+        </li>
+        <li>
+          Prețul final poate să difere cu <strong>0–0,99%</strong>, deoarece calculul
+          în Deviz360 se realizează cu multe cifre după virgulă, spre deosebire de Winsmeta.
+        </li>
+      </ol>
+    </div>
+  </div>
+
   <script src="{{ url_for('static', filename='js/app.js') }}?v={{ build }}"></script>
 </body>
 </html>
