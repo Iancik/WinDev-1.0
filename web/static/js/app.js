@@ -170,6 +170,8 @@
           throw new Error(parseError(stRes, stRaw));
         }
         job = JSON.parse(stRaw);
+        if (job.step === "extract") btnLabel.textContent = "Se extrage arhiva…";
+        if (job.step === "convert") btnLabel.textContent = "Se convertește…";
         if (job.status === "error") {
           throw new Error(job.error || "Conversia a eșuat pe server.");
         }

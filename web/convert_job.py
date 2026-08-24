@@ -36,9 +36,12 @@ def main() -> int:
     job_folder = job_dir(job_id)
     work_dir = ""
     try:
-        write_status(job_id, status="pending", pid=os.getpid())
+        write_status(job_id, status="pending", pid=os.getpid(), step="extract")
+        print(f"[{job_id}] extract {filename}", flush=True)
         archive = _archive_path(job_folder)
         kos_path, work_dir = prepare_kos_from_upload(archive, filename)
+        write_status(job_id, step="convert")
+        print(f"[{job_id}] convert {kos_path}", flush=True)
         out_path = os.path.join(job_folder, "export.xlsx")
         count, info, norm_count, sheets, _mat, _man, _uti, total = convert_kos_to_deviz360_xlsx(
             kos_path, out_path

@@ -7,6 +7,7 @@ import io
 import os
 import subprocess
 import sys
+import threading
 import time
 import uuid
 
@@ -17,7 +18,7 @@ ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 if ROOT not in sys.path:
     sys.path.insert(0, ROOT)
 
-from web.jobs import job_dir, purge_old_jobs, resolve_job, write_status
+from web.jobs import job_dir, purge_old_jobs, read_status, resolve_job, write_status
 from web.kos_utils import safe_download_name
 
 app = Flask(
@@ -26,11 +27,22 @@ app = Flask(
     static_folder=os.path.join(os.path.dirname(__file__), "static"),
 )
 app.config["MAX_CONTENT_LENGTH"] = 80 * 1024 * 1024
+app.config["SEND_FILE_MAX_AGE_DEFAULT"] = 0
 
 
-def _safe_error_message(exc: BaseException) -> str:
-    text = str(exc).encode("utf-8", "replace").decode("utf-8").strip()
-    return text or "Conversia a eșuat pe server."
+def _watch_worker(proc: subprocess.Popen, job_id: str) -> None:
+    out, _ = proc.communicate()
+    text = (out or b"").decode("utf-8", "replace")
+    app.logger.info("worker %s exit=%s\n%s", job_id, proc.returncode, text[-4000:])
+    job = read_status(job_id) or {}
+    if job.get("status") == "pending":
+        snippet = text.strip()[-800:] or f"Worker s-a oprit (cod {proc.returncode})."
+        write_status(
+            job_id,
+            status="error",
+            error=snippet.splitlines()[-1][:400] if snippet else "Conversia s-a oprit pe server.",
+            trace=snippet[-2000:],
+        )
 
 
 @app.errorhandler(RequestEntityTooLarge)
@@ -74,25 +86,21 @@ def convert():
         created=time.time(),
         download_name=safe_download_name(upload.filename),
         pid=0,
+        step="start",
     )
 
     worker = os.path.join(ROOT, "web", "convert_job.py")
     env = os.environ.copy()
     env["PYTHONPATH"] = ROOT + os.pathsep + env.get("PYTHONPATH", "")
-    popen_kw = {
-        "args": [sys.executable, worker, job_id, upload.filename],
-        "cwd": ROOT,
-        "env": env,
-        "stdout": subprocess.DEVNULL,
-        "stderr": open(os.path.join(folder, "worker.log"), "ab", buffering=0),
-    }
-    if os.name == "nt":
-        popen_kw["creationflags"] = subprocess.CREATE_NEW_PROCESS_GROUP
-    else:
-        popen_kw["start_new_session"] = True
-
-    proc = subprocess.Popen(**popen_kw)
+    proc = subprocess.Popen(
+        [sys.executable, "-u", worker, job_id, upload.filename],
+        cwd=ROOT,
+        env=env,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.STDOUT,
+    )
     write_status(job_id, pid=proc.pid)
+    threading.Thread(target=_watch_worker, args=(proc, job_id), daemon=True, name=f"watch-{job_id[:8]}").start()
     return jsonify({"ok": True, "job_id": job_id, "status": "pending"}), 202
 
 
@@ -107,6 +115,7 @@ def job_status(job_id: str):
             "job_id": job_id,
             "status": job.get("status") or "pending",
             "error": job.get("error") or "",
+            "step": job.get("step") or "",
             "filename": job.get("download_name") or "",
             "stats": job.get("stats"),
         }

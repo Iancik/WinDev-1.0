@@ -53,6 +53,14 @@ def pid_alive(pid: Any) -> bool:
     if pid_i <= 0:
         return False
     try:
+        with open(f"/proc/{pid_i}/stat", "r", encoding="ascii") as fh:
+            stat = fh.read()
+        rparen = stat.rfind(")")
+        if rparen != -1 and rparen + 2 < len(stat) and stat[rparen + 2] == "Z":
+            return False
+    except OSError:
+        pass
+    try:
         os.kill(pid_i, 0)
         return True
     except OSError:
