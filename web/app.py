@@ -11,7 +11,7 @@ import threading
 import time
 import uuid
 
-from flask import Flask, jsonify, render_template, request, send_file
+from flask import Flask, jsonify, render_template, request, send_file, send_from_directory
 from werkzeug.exceptions import RequestEntityTooLarge
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -29,7 +29,7 @@ app = Flask(
 app.config["MAX_CONTENT_LENGTH"] = 80 * 1024 * 1024
 app.config["SEND_FILE_MAX_AGE_DEFAULT"] = 0
 
-BUILD_ID = "14"
+BUILD_ID = "15"
 
 
 def _watch_worker(proc: subprocess.Popen, job_id: str) -> None:
@@ -72,6 +72,15 @@ def index():
     resp = app.make_response(render_template("index.html", build=BUILD_ID))
     resp.headers["Cache-Control"] = "no-store"
     return resp
+
+
+@app.route("/favicon.ico")
+def favicon():
+    return send_from_directory(
+        os.path.join(app.static_folder, "img"),
+        "logo.ico",
+        mimetype="image/x-icon",
+    )
 
 
 @app.route("/api/health")
