@@ -133,15 +133,17 @@
   const infoClose = document.getElementById("info-close");
 
   function openInfo() {
+    if (!infoModal || !infoClose) return;
     infoModal.classList.remove("hidden");
     infoModal.setAttribute("aria-hidden", "false");
     infoClose.focus();
   }
 
   function closeInfo() {
+    if (!infoModal) return;
     infoModal.classList.add("hidden");
     infoModal.setAttribute("aria-hidden", "true");
-    infoBtn.focus();
+    if (infoBtn) infoBtn.focus();
   }
 
   if (infoBtn && infoModal && infoClose) {
@@ -222,6 +224,7 @@
 
       successBox.textContent = "Fișierul a fost generat și descărcat cu succes.";
       successBox.classList.remove("hidden");
+      setTimeout(openInfo, 400);
     } catch (err) {
       showError(err.message || "Eroare necunoscută.");
     } finally {
