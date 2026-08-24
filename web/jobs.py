@@ -87,14 +87,23 @@ def resolve_job(job_id: str) -> Optional[Dict[str, Any]]:
     data = read_status(job_id)
     if not data:
         return None
-    if data.get("status") == "pending" and not pid_alive(data.get("pid")):
-        xlsx = data.get("xlsx_path") or os.path.join(job_dir(job_id), "export.xlsx")
-        if os.path.isfile(xlsx):
-            data = write_status(job_id, status="done", xlsx_path=xlsx)
-        else:
+    if data.get("status") == "pending":
+        age = time.time() - float(data.get("created") or time.time())
+        if age > 180:
             data = write_status(
                 job_id,
                 status="error",
-                error="Conversia s-a oprit pe server. Reîncărcați arhiva ZIP.",
+                error="Conversia a durat prea mult pe server. Încercați un proiect/ZIP mai mic.",
             )
+            return data
+        if not pid_alive(data.get("pid")):
+            xlsx = data.get("xlsx_path") or os.path.join(job_dir(job_id), "export.xlsx")
+            if os.path.isfile(xlsx):
+                data = write_status(job_id, status="done", xlsx_path=xlsx)
+            else:
+                data = write_status(
+                    job_id,
+                    status="error",
+                    error="Conversia s-a oprit pe server. Reîncărcați arhiva ZIP.",
+                )
     return data

@@ -5,10 +5,10 @@ from __future__ import annotations
 
 import io
 import os
-import subprocess
 import sys
 import threading
 import time
+import traceback
 import uuid
 
 from flask import Flask, jsonify, render_template, request, send_file
@@ -18,8 +18,13 @@ ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 if ROOT not in sys.path:
     sys.path.insert(0, ROOT)
 
-from web.jobs import job_dir, purge_old_jobs, read_status, resolve_job, write_status
-from web.kos_utils import safe_download_name
+from web.jobs import job_dir, purge_old_jobs, resolve_job, write_status
+from web.kos_utils import (
+    cleanup_work_dir,
+    prepare_kos_from_upload,
+    safe_download_name,
+)
+from winsmeta_to_deviz360 import convert_kos_to_deviz360_xlsx
 
 app = Flask(
     __name__,
@@ -30,19 +35,49 @@ app.config["MAX_CONTENT_LENGTH"] = 80 * 1024 * 1024
 app.config["SEND_FILE_MAX_AGE_DEFAULT"] = 0
 
 
-def _watch_worker(proc: subprocess.Popen, job_id: str) -> None:
-    out, _ = proc.communicate()
-    text = (out or b"").decode("utf-8", "replace")
-    app.logger.info("worker %s exit=%s\n%s", job_id, proc.returncode, text[-4000:])
-    job = read_status(job_id) or {}
-    if job.get("status") == "pending":
-        snippet = text.strip()[-800:] or f"Worker s-a oprit (cod {proc.returncode})."
+BUILD_ID = "7"
+
+
+def _run_job(job_id: str, archive_path: str, filename: str) -> None:
+    work_dir = ""
+    try:
+        print(f"JOB {job_id} extract {filename}", flush=True)
+        write_status(job_id, status="pending", step="extract")
+        kos_path, work_dir = prepare_kos_from_upload(archive_path, filename)
+        print(f"JOB {job_id} convert {kos_path}", flush=True)
+        write_status(job_id, step="convert")
+        out_path = os.path.join(job_dir(job_id), "export.xlsx")
+        count, info, norm_count, sheets, _mat, _man, _uti, total = convert_kos_to_deviz360_xlsx(
+            kos_path, out_path
+        )
+        write_status(
+            job_id,
+            status="done",
+            step="done",
+            xlsx_path=out_path,
+            download_name=safe_download_name(filename),
+            stats={
+                "obiect": info.obiect or "",
+                "norms": str(norm_count),
+                "devizes": str(sheets),
+                "rows": str(count),
+                "total": f"{total:.2f}",
+            },
+        )
+        print(f"JOB {job_id} done rows={count}", flush=True)
+    except Exception as exc:
+        print(f"JOB {job_id} FAIL {exc}", flush=True)
+        traceback.print_exc()
         write_status(
             job_id,
             status="error",
-            error=snippet.splitlines()[-1][:400] if snippet else "Conversia s-a oprit pe server.",
-            trace=snippet[-2000:],
+            step="error",
+            error=str(exc).encode("utf-8", "replace").decode("utf-8").strip()
+            or "Conversia a eșuat pe server.",
         )
+    finally:
+        if work_dir:
+            cleanup_work_dir(work_dir)
 
 
 @app.errorhandler(RequestEntityTooLarge)
@@ -52,12 +87,15 @@ def too_large(_exc):
 
 @app.route("/")
 def index():
-    return render_template("index.html")
+    response = render_template("index.html", build=BUILD_ID)
+    resp = app.make_response(response)
+    resp.headers["Cache-Control"] = "no-store"
+    return resp
 
 
 @app.route("/api/health")
 def health():
-    return jsonify({"ok": True, "app": "WinDev"})
+    return jsonify({"ok": True, "app": "WinDev", "build": BUILD_ID})
 
 
 @app.post("/api/convert")
@@ -85,23 +123,16 @@ def convert():
         status="pending",
         created=time.time(),
         download_name=safe_download_name(upload.filename),
-        pid=0,
-        step="start",
+        pid=os.getpid(),
+        step="queued",
     )
-
-    worker = os.path.join(ROOT, "web", "convert_job.py")
-    env = os.environ.copy()
-    env["PYTHONPATH"] = ROOT + os.pathsep + env.get("PYTHONPATH", "")
-    proc = subprocess.Popen(
-        [sys.executable, "-u", worker, job_id, upload.filename],
-        cwd=ROOT,
-        env=env,
-        stdout=subprocess.PIPE,
-        stderr=subprocess.STDOUT,
-    )
-    write_status(job_id, pid=proc.pid)
-    threading.Thread(target=_watch_worker, args=(proc, job_id), daemon=True, name=f"watch-{job_id[:8]}").start()
-    return jsonify({"ok": True, "job_id": job_id, "status": "pending"}), 202
+    threading.Thread(
+        target=_run_job,
+        args=(job_id, archive_path, upload.filename),
+        daemon=True,
+        name=f"job-{job_id[:8]}",
+    ).start()
+    return jsonify({"ok": True, "job_id": job_id, "status": "pending", "build": BUILD_ID}), 202
 
 
 @app.get("/api/jobs/<job_id>")
