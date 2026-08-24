@@ -160,7 +160,7 @@
         throw new Error("Serverul nu a pornit conversia. Faceți Manual Deploy pe Render.");
       }
 
-      const deadline = Date.now() + 4 * 60 * 1000;
+      const deadline = Date.now() + 8 * 60 * 1000;
       let job;
       while (Date.now() < deadline) {
         await sleep(1500);

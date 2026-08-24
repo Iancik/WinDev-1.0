@@ -111,14 +111,15 @@ def _mojibake_count(text: str) -> int:
 
 
 def _encoding_score(text: str) -> int:
-    score = _cyrillic_count(text) * 4
-    score += _romanian_diacritics_count(text) * 3
-    score -= _mojibake_count(text) * 3
+    # Preferă româna (cp1250); chirilicul nu trebuie să câștige pe texte de deviz.
+    score = _romanian_diacritics_count(text) * 8
+    score += _cyrillic_count(text)
+    score -= _mojibake_count(text) * 4
     score -= text.count("\ufffd") * 20
     return score
 
 
-_TEXT_ENCODINGS = ("cp866", "cp1251", "cp1250")
+_TEXT_ENCODINGS = ("cp1250", "cp1251", "cp866")
 
 
 def _decode_high_byte_run(chunk: bytes) -> str:
@@ -185,11 +186,14 @@ def _decode_bytes_smart(raw: bytes) -> str:
 
 
 def _fix_string_encoding(text: str) -> str:
-    """Repară text deja decodat greșit (CP866/CP1251 citit ca CP1250 etc.)."""
+    """Repară text deja decodat greșit, fără a transforma româna în chirilic."""
     if not text:
         return text
 
     cleaned = text.rstrip("\x00").strip()
+    if _romanian_diacritics_count(cleaned) and _mojibake_count(cleaned) == 0:
+        return cleaned
+
     best = cleaned
     best_score = _encoding_score(cleaned)
 

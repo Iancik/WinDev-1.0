@@ -305,8 +305,25 @@ def _format_row_d360(row: Dict[str, Any], info: ProjectInfo) -> Dict[str, Any]:
 
 
 def _sheet_write_value(value: Any) -> Any:
-    if value == "":
+    if value == "" or value is None:
         return None
+    if isinstance(value, bool) or isinstance(value, (int, float)):
+        return value
+    if not isinstance(value, str):
+        return value
+    text = value.strip()
+    if not text or text.startswith("#"):
+        return value
+    if re.fullmatch(r"-?\d+", text):
+        try:
+            return int(text)
+        except ValueError:
+            return value
+    if re.fullmatch(r"-?\d+\.\d+", text):
+        try:
+            return float(text)
+        except ValueError:
+            return value
     return value
 
 
