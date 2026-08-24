@@ -35,9 +35,19 @@
           >
         </div>
       </div>
-      <div class="wip-banner" role="status">
-        <span class="wip-badge">În elaborare</span>
-        <p>Programul este în curs de elaborare. Aceasta nu este varianta finală.</p>
+      <div class="header-tools">
+        <div class="wip-banner" role="status">
+          <span class="wip-badge">În elaborare</span>
+          <p>Programul este în curs de elaborare. Aceasta nu este varianta finală.</p>
+        </div>
+        <button type="button" class="info-fab" id="info-btn" aria-haspopup="dialog" aria-controls="info-modal" title="Informații">
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <circle cx="12" cy="12" r="10" fill="currentColor"/>
+            <rect x="11" y="10" width="2" height="7" rx="1" fill="#0c0f14"/>
+            <circle cx="12" cy="7.2" r="1.2" fill="#0c0f14"/>
+          </svg>
+          <span class="sr-only">Informații</span>
+        </button>
       </div>
     </header>
 
@@ -98,10 +108,6 @@
       <p class="footer-meta">WinDev · convertor de test · build {{ build }}</p>
     </footer>
   </div>
-
-  <button type="button" class="info-fab" id="info-btn" aria-haspopup="dialog" aria-controls="info-modal" title="Informații">
-    i
-  </button>
 
   <div class="modal-overlay hidden" id="info-modal" aria-hidden="true">
     <div class="modal" role="dialog" aria-modal="true" aria-labelledby="info-title">

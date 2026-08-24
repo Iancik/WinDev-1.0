@@ -144,16 +144,18 @@
     infoBtn.focus();
   }
 
-  infoBtn.addEventListener("click", openInfo);
-  infoClose.addEventListener("click", closeInfo);
-  infoModal.addEventListener("click", (e) => {
-    if (e.target === infoModal) closeInfo();
-  });
-  document.addEventListener("keydown", (e) => {
-    if (e.key === "Escape" && !infoModal.classList.contains("hidden")) {
-      closeInfo();
-    }
-  });
+  if (infoBtn && infoModal && infoClose) {
+    infoBtn.addEventListener("click", openInfo);
+    infoClose.addEventListener("click", closeInfo);
+    infoModal.addEventListener("click", (e) => {
+      if (e.target === infoModal) closeInfo();
+    });
+    document.addEventListener("keydown", (e) => {
+      if (e.key === "Escape" && !infoModal.classList.contains("hidden")) {
+        closeInfo();
+      }
+    });
+  }
 
   form.addEventListener("submit", async (e) => {
     e.preventDefault();
