@@ -4,6 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>WinDev — Winsmeta → Deviz360</title>
+  <link rel="icon" href="{{ url_for('static', filename='img/logo-softconstruct.png') }}">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
@@ -13,19 +14,30 @@
   <div class="bg-grid"></div>
   <div class="page">
     <header class="header">
-      <div class="brand">
-        <div class="brand-icon">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
-            <polyline points="14 2 14 8 20 8"/>
-            <line x1="8" y1="13" x2="16" y2="13"/>
-            <line x1="8" y1="17" x2="13" y2="17"/>
-          </svg>
+      <div class="logo-bar">
+        <div class="logo-frame">
+          <img
+            class="logo-img logo-softconstruct"
+            src="{{ url_for('static', filename='img/logo-softconstruct.png') }}?v={{ build }}"
+            alt="Softconstruct"
+          >
         </div>
-        <div>
+        <div class="logo-bridge">
+          <p class="bridge-kicker">convertor</p>
           <h1>WinDev</h1>
-          <p class="tagline">Winsmeta KOS → Deviz360</p>
+          <p class="tagline">Winsmeta → Deviz360</p>
         </div>
+        <div class="logo-frame">
+          <img
+            class="logo-img logo-deviz360"
+            src="{{ url_for('static', filename='img/logo-deviz360.png') }}?v={{ build }}"
+            alt="Deviz360"
+          >
+        </div>
+      </div>
+      <div class="wip-banner" role="status">
+        <span class="wip-badge">În elaborare</span>
+        <p>Programul este în curs de elaborare. Aceasta nu este varianta finală.</p>
       </div>
     </header>
 
@@ -82,11 +94,8 @@
     </main>
 
     <footer class="footer">
-      <span>WinDev</span>
-      <span class="dot">·</span>
-      <span>Convertor Winsmeta → Deviz360</span>
-      <span class="dot">·</span>
-      <span>build {{ build }}</span>
+      <strong class="footer-brand">Softconstruct 2026</strong>
+      <p class="footer-meta">WinDev · convertor de test · build {{ build }}</p>
     </footer>
   </div>
   <script src="{{ url_for('static', filename='js/app.js') }}?v={{ build }}"></script>
