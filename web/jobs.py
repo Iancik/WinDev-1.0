@@ -104,6 +104,6 @@ def resolve_job(job_id: str) -> Optional[Dict[str, Any]]:
                 data = write_status(
                     job_id,
                     status="error",
-                    error="Conversia s-a oprit pe server. Reîncărcați arhiva ZIP.",
+                    error="Citirea proiectului Winsmeta a oprit convertorul. Reîncărcați ZIP-ul.",
                 )
     return data

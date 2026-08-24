@@ -246,6 +246,20 @@ def _safe_row(table: Table, row) -> Dict[str, Any]:
     return result
 
 
+def _read_table_rows(path: str) -> List[Dict[str, Any]]:
+    print(f"PX open {path}", flush=True)
+    table = Table(path, encoding="cp1250")
+    try:
+        rows = [_safe_row(table, row) for row in table]
+    finally:
+        try:
+            table.close()
+        except Exception:
+            pass
+    print(f"PX close {path} rows={len(rows)}", flush=True)
+    return rows
+
+
 def _kos_file(kos_path: str, name: str) -> Optional[str]:
     """Găsește un fișier KOS ignorând majuscule (Linux vs. Windows)."""
     want = name.upper()
@@ -264,21 +278,20 @@ def _read_dane(kos_path: str) -> ProjectInfo:
     if not dane_path:
         return info
 
-    table = Table(dane_path, encoding="cp1250")
-    for row in table:
-        data = _safe_row(table, row)
-        obiectiv = data.get("UmowaBudowa") or data.get("UmowaObiekt") or ""
-        obiect = data.get("UmowaRodzaj") or data.get("UmowaObiekt") or ""
-        kos_nr = data.get("KosNr") or ""
-        info.obiectiv = str(obiectiv or "")
-        info.obiect = str(obiect or "")
-        info.deviz = f"Deviz {kos_nr}".strip() if kos_nr else "Deviz Winsmeta"
-        info.moneda = str(data.get("KosWaluta") or "lei")
-        kos_data = data.get("KosData")
-        if kos_data:
-            info.data_deviz = str(kos_data)
-        break
-
+    table_rows = _read_table_rows(dane_path)
+    if not table_rows:
+        return info
+    data = table_rows[0]
+    obiectiv = data.get("UmowaBudowa") or data.get("UmowaObiekt") or ""
+    obiect = data.get("UmowaRodzaj") or data.get("UmowaObiekt") or ""
+    kos_nr = data.get("KosNr") or ""
+    info.obiectiv = str(obiectiv or "")
+    info.obiect = str(obiect or "")
+    info.deviz = f"Deviz {kos_nr}".strip() if kos_nr else "Deviz Winsmeta"
+    info.moneda = str(data.get("KosWaluta") or "lei")
+    kos_data = data.get("KosData")
+    if kos_data:
+        info.data_deviz = str(kos_data)
     return info
 
 
@@ -290,41 +303,37 @@ def load_kos(kos_path: str) -> KosData:
     if not poz_path:
         raise FileNotFoundError(f"Nu am găsit POZYCJE.DB în {kos_path}")
 
-    poz_t = Table(poz_path, encoding="cp1250")
-    pozycje = {row["Nr"]: _safe_row(poz_t, row) for row in poz_t}
+    pozycje = {row["Nr"]: row for row in _read_table_rows(poz_path) if row.get("Nr") is not None}
 
     naklady: Dict[int, List[Dict[str, Any]]] = {}
     nak_path = _kos_file(kos_path, "NAKLADY.DB")
     if nak_path:
-        nak_t = Table(nak_path, encoding="cp1250")
-        for row in nak_t:
-            item = _safe_row(nak_t, row)
+        for item in _read_table_rows(nak_path):
             naklady.setdefault(item["NrPoz"], []).append(item)
 
     indeks: Dict[int, Dict[str, Any]] = {}
     ind_path = _kos_file(kos_path, "INDEKS.DB")
     if ind_path:
-        ind_t = Table(ind_path, encoding="cp1250")
-        indeks = {row["NrInd"]: _safe_row(ind_t, row) for row in ind_t}
+        indeks = {row["NrInd"]: row for row in _read_table_rows(ind_path) if row.get("NrInd") is not None}
 
     jedn: Dict[int, Dict[str, Any]] = {}
     jed_path = _kos_file(kos_path, "JEDN.DB")
     if jed_path:
-        jed_t = Table(jed_path, encoding="cp1250")
-        jedn = {row["Nr"]: _safe_row(jed_t, row) for row in jed_t}
+        jedn = {row["Nr"]: row for row in _read_table_rows(jed_path) if row.get("Nr") is not None}
 
     defnarz: Dict[int, Dict[str, Any]] = {}
     def_path = _kos_file(kos_path, "DEFNARZ.DB")
     if def_path:
-        def_t = Table(def_path, encoding="cp1250")
-        defnarz = {row["NrNarzutu"]: _safe_row(def_t, row) for row in def_t}
+        defnarz = {
+            row["NrNarzutu"]: row
+            for row in _read_table_rows(def_path)
+            if row.get("NrNarzutu") is not None
+        }
 
     narzuty: Dict[int, List[Dict[str, Any]]] = {}
     nar_path = _kos_file(kos_path, "NARZUTY.DB")
     if nar_path:
-        nar_t = Table(nar_path, encoding="cp1250")
-        for row in nar_t:
-            item = _safe_row(nar_t, row)
+        for item in _read_table_rows(nar_path):
             narzuty.setdefault(item["NrPoz"], []).append(item)
 
     return KosData(
