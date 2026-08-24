@@ -111,15 +111,14 @@ def _mojibake_count(text: str) -> int:
 
 
 def _encoding_score(text: str) -> int:
-    # Preferă româna (cp1250); chirilicul nu trebuie să câștige pe texte de deviz.
-    score = _romanian_diacritics_count(text) * 8
-    score += _cyrillic_count(text)
-    score -= _mojibake_count(text) * 4
+    score = _cyrillic_count(text) * 4
+    score += _romanian_diacritics_count(text) * 3
+    score -= _mojibake_count(text) * 3
     score -= text.count("\ufffd") * 20
     return score
 
 
-_TEXT_ENCODINGS = ("cp1250", "cp1251", "cp866")
+_TEXT_ENCODINGS = ("cp866", "cp1251", "cp1250")
 
 
 def _decode_high_byte_run(chunk: bytes) -> str:
@@ -186,14 +185,11 @@ def _decode_bytes_smart(raw: bytes) -> str:
 
 
 def _fix_string_encoding(text: str) -> str:
-    """Repară text deja decodat greșit, fără a transforma româna în chirilic."""
+    """Repară text deja decodat greșit (CP866/CP1251 citit ca CP1250 etc.)."""
     if not text:
         return text
 
     cleaned = text.rstrip("\x00").strip()
-    if _romanian_diacritics_count(cleaned) and _mojibake_count(cleaned) == 0:
-        return cleaned
-
     best = cleaned
     best_score = _encoding_score(cleaned)
 
@@ -337,6 +333,9 @@ def _pick_name(nazwa: Any, nazwa2: Any = None) -> str:
     full = str(_dec(nazwa2) or "").strip()
     short = str(_dec(nazwa) or "").strip()
     if full:
+        # Dacă memo-ul e trunchiat (1-2 litere), păstrează denumirea scurtă completă.
+        if short and len(full) <= 2 and len(short) > len(full) and short.startswith(full):
+            return short
         return full
     return short
 

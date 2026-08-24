@@ -3,6 +3,7 @@
 
 from __future__ import annotations
 
+import os
 import struct
 from typing import Any, Dict, List, Optional, Tuple
 
@@ -75,16 +76,74 @@ def _decode_number(data: bytes) -> Optional[float]:
 
 
 def _decode_alpha(data: bytes) -> str:
+    """Ca pypxlib Table(encoding='cp1250'): text pe un octet, oprit la NUL."""
+    if not data or data[0] == 0:
+        return ""
     text = data.split(b"\x00", 1)[0]
-    for enc in ("cp1250", "cp866", "cp1251", "latin1"):
-        try:
-            return text.decode(enc).strip()
-        except UnicodeDecodeError:
-            continue
-    return text.decode("latin1", "replace").strip()
+    return text.decode("cp1250", "replace").rstrip()
 
 
-def _decode_field(ftype: int, data: bytes) -> Any:
+def _load_mb(db_path: str) -> Optional[bytes]:
+    directory = os.path.dirname(db_path) or "."
+    stem = os.path.splitext(os.path.basename(db_path))[0].upper()
+    try:
+        for name in os.listdir(directory):
+            root, ext = os.path.splitext(name)
+            if root.upper() == stem and ext.upper() == ".MB":
+                with open(os.path.join(directory, name), "rb") as fh:
+                    return fh.read()
+    except OSError:
+        return None
+    return None
+
+
+def _decode_memo(data: bytes, mb: Optional[bytes]) -> str:
+    """Citește memo/blob: lider în .DB + restul în .MB (ca pxlib/pypxlib)."""
+    if len(data) < 10:
+        return _decode_alpha(data)
+
+    leader_len = len(data) - 10
+    blob_len = _u32(data, leader_len + 4)
+    if blob_len <= 0:
+        return ""
+    if blob_len <= leader_len:
+        return _decode_alpha(data[:blob_len])
+
+    # Textul complet e în .MB; nu întoarce liderul de 1 caracter.
+    if not mb:
+        return ""
+
+    offset_raw = _u32(data, leader_len)
+    index = offset_raw & 0xFF
+    offset = offset_raw & 0xFFFFFF00
+    if offset == 0 or offset >= len(mb):
+        return ""
+
+    block_type = mb[offset]
+    if block_type == 2:
+        start = offset + 9
+        end = start + blob_len
+        if end > len(mb):
+            return ""
+        return _decode_alpha(mb[start:end])
+
+    if block_type == 3:
+        ptr = offset + 12 + index * 5
+        if ptr + 5 > len(mb):
+            return ""
+        chunk = mb[ptr]
+        if chunk == 0:
+            return ""
+        start = offset + chunk * 16
+        end = start + blob_len
+        if start <= offset or end > len(mb):
+            return ""
+        return _decode_alpha(mb[start:end])
+
+    return ""
+
+
+def _decode_field(ftype: int, data: bytes, mb: Optional[bytes] = None) -> Any:
     if ftype == PX_ALPHA:
         return _decode_alpha(data)
     if ftype == PX_SHORT:
@@ -98,8 +157,7 @@ def _decode_field(ftype: int, data: bytes) -> Any:
             return None
         return bool(data[0] & 0x7F)
     if ftype in (PX_MEMO, PX_FMTMEMO, PX_BLOB, PX_OLE, PX_GRAPHIC):
-        inline = data[:-10] if len(data) > 10 else data
-        return _decode_alpha(inline)
+        return _decode_memo(data, mb)
     if ftype == PX_BCD:
         return _decode_alpha(data)
     if ftype == PX_BYTES:
@@ -184,6 +242,7 @@ def read_paradox_table(path: str) -> List[Dict[str, Any]]:
             flen = 17
         fields.append((name, ftype, flen))
 
+    mb = _load_mb(path)
     rec_size = header["record_size"]
     block_size = header["max_table_size"] * 0x400
     header_size = header["header_size"]
@@ -215,7 +274,7 @@ def read_paradox_table(path: str) -> List[Dict[str, Any]]:
             row: Dict[str, Any] = {}
             cur = 0
             for name, ftype, flen in fields:
-                row[name] = _decode_field(ftype, rec[cur : cur + flen])
+                row[name] = _decode_field(ftype, rec[cur : cur + flen], mb)
                 cur += flen
             rows.append(row)
             if header["num_records"] and len(rows) >= header["num_records"]:
