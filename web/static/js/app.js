@@ -37,13 +37,33 @@
     submitBtn.disabled = !file;
   }
 
-  function renderStats(headers) {
+  function sleep(ms) {
+    return new Promise((resolve) => setTimeout(resolve, ms));
+  }
+
+  function parseError(res, raw) {
+    let msg = "Conversia a eșuat.";
+    try {
+      const data = JSON.parse(raw);
+      if (data.error) msg = data.error;
+    } catch (_) {
+      if (res.status === 413) msg = "Fișierul este prea mare (maximum 80 MB).";
+      else if (res.status === 502 || res.status === 503 || res.status === 504) {
+        msg = "Serverul este ocupat. Așteptați 30 de secunde și reîncercați.";
+      } else {
+        msg = "Conversia a eșuat (cod " + res.status + ").";
+      }
+    }
+    return msg;
+  }
+
+  function renderStats(stats) {
     const items = [
-      ["Obiect", headers.get("X-WinDev-Object") || "—"],
-      ["Norme", headers.get("X-WinDev-Norms") || "—"],
-      ["Devize", headers.get("X-WinDev-Devizes") || "—"],
-      ["Rânduri", headers.get("X-WinDev-Rows") || "—"],
-      ["Cheltuieli directe", headers.get("X-WinDev-Total") ? headers.get("X-WinDev-Total") + " lei" : "—"],
+      ["Obiect", (stats && stats.obiect) || "—"],
+      ["Norme", (stats && stats.norms) || "—"],
+      ["Devize", (stats && stats.devizes) || "—"],
+      ["Rânduri", (stats && stats.rows) || "—"],
+      ["Cheltuieli directe", stats && stats.total ? stats.total + " lei" : "—"],
     ];
     statsGrid.innerHTML = items
       .map(
@@ -115,7 +135,7 @@
 
     const file = fileInput.files[0];
     if (!file) {
-      showError("Selectați o arhivă ZIP sau RAR.");
+      showError("Selectați o arhivă ZIP.");
       return;
     }
 
@@ -124,34 +144,50 @@
 
     setLoading(true);
     try {
-      const res = await fetch(apiUrl, { method: "POST", body: fd });
-      if (!res.ok) {
-        const raw = await res.text();
-        let msg = "Conversia a eșuat.";
-        try {
-          const data = JSON.parse(raw);
-          if (data.error) msg = data.error;
-        } catch (_) {
-          if (res.status === 413) {
-            msg = "Fișierul este prea mare (maximum 80 MB).";
-          } else if (res.status === 502 || res.status === 503 || res.status === 504) {
-            msg =
-              "Serverul a întrerupt conversia (timeout). Folosiți arhivă ZIP (nu RAR) și reîncercați.";
-          } else {
-            msg = "Conversia a eșuat (cod " + res.status + "). Folosiți arhivă ZIP, nu RAR.";
-          }
-        }
-        throw new Error(msg);
+      const startRes = await fetch(apiUrl, { method: "POST", body: fd });
+      const startRaw = await startRes.text();
+      if (!startRes.ok) {
+        throw new Error(parseError(startRes, startRaw));
+      }
+      let startData;
+      try {
+        startData = JSON.parse(startRaw);
+      } catch (_) {
+        throw new Error("Răspuns invalid de la server. Faceți Manual Deploy pe Render, apoi reîncercați.");
+      }
+      const jobId = startData.job_id;
+      if (!jobId) {
+        throw new Error("Serverul nu a pornit conversia. Faceți Manual Deploy pe Render.");
       }
 
-      const blob = await res.blob();
-      const disp = res.headers.get("Content-Disposition") || "";
-      let filename = "deviz360_export.xlsx";
-      const match = /filename\*?=(?:UTF-8''|")?([^";]+)/i.exec(disp);
-      if (match) filename = decodeURIComponent(match[1].replace(/"/g, ""));
+      const deadline = Date.now() + 4 * 60 * 1000;
+      let job;
+      while (Date.now() < deadline) {
+        await sleep(1500);
+        const stRes = await fetch("/api/jobs/" + jobId);
+        const stRaw = await stRes.text();
+        if (!stRes.ok) {
+          throw new Error(parseError(stRes, stRaw));
+        }
+        job = JSON.parse(stRaw);
+        if (job.status === "error") {
+          throw new Error(job.error || "Conversia a eșuat pe server.");
+        }
+        if (job.status === "done") {
+          break;
+        }
+      }
+      if (!job || job.status !== "done") {
+        throw new Error("Conversia durează prea mult. Reîncercați cu un ZIP mai mic.");
+      }
 
-      downloadBlob(blob, filename);
-      renderStats(res.headers);
+      const fileRes = await fetch("/api/jobs/" + jobId + "/file");
+      if (!fileRes.ok) {
+        throw new Error(parseError(fileRes, await fileRes.text()));
+      }
+      const blob = await fileRes.blob();
+      downloadBlob(blob, job.filename || "deviz360_export.xlsx");
+      renderStats(job.stats || {});
 
       successBox.textContent = "Fișierul a fost generat și descărcat cu succes.";
       successBox.classList.remove("hidden");

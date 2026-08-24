@@ -4,4 +4,4 @@ services:
     runtime: python
     plan: free
     buildCommand: pip install -r requirements.txt
-    startCommand: gunicorn -w 1 -b 0.0.0.0:$PORT --timeout 180 "web.app:app"
+    startCommand: gunicorn -w 1 -k gthread --threads 4 -b 0.0.0.0:$PORT --timeout 180 "web.app:app"
