@@ -9,6 +9,7 @@ import sys
 import tempfile
 
 from flask import Flask, jsonify, render_template, request, send_file
+from werkzeug.exceptions import RequestEntityTooLarge
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 if ROOT not in sys.path:
@@ -29,6 +30,16 @@ app = Flask(
     static_folder=os.path.join(os.path.dirname(__file__), "static"),
 )
 app.config["MAX_CONTENT_LENGTH"] = 80 * 1024 * 1024
+
+
+def _safe_error_message(exc: BaseException) -> str:
+    text = str(exc).encode("utf-8", "replace").decode("utf-8").strip()
+    return text or "Conversia a eșuat pe server."
+
+
+@app.errorhandler(RequestEntityTooLarge)
+def too_large(_exc):
+    return jsonify({"ok": False, "error": "Arhiva depășește limita de 80 MB. Folosiți ZIP."}), 413
 
 
 @app.route("/")
@@ -88,9 +99,10 @@ def convert():
         return response
 
     except KosUploadError as exc:
-        return jsonify({"ok": False, "error": str(exc)}), 400
+        return jsonify({"ok": False, "error": _safe_error_message(exc)}), 400
     except Exception as exc:
-        return jsonify({"ok": False, "error": str(exc)}), 500
+        app.logger.exception("Conversie eșuată")
+        return jsonify({"ok": False, "error": _safe_error_message(exc)}), 500
     finally:
         try:
             os.unlink(tmp_archive.name)

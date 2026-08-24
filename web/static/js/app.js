@@ -126,12 +126,20 @@
     try {
       const res = await fetch(apiUrl, { method: "POST", body: fd });
       if (!res.ok) {
+        const raw = await res.text();
         let msg = "Conversia a eșuat.";
         try {
-          const data = await res.json();
+          const data = JSON.parse(raw);
           if (data.error) msg = data.error;
         } catch (_) {
-          /* răspuns non-JSON */
+          if (res.status === 413) {
+            msg = "Fișierul este prea mare (maximum 80 MB).";
+          } else if (res.status === 502 || res.status === 503 || res.status === 504) {
+            msg =
+              "Serverul a întrerupt conversia (timeout). Folosiți arhivă ZIP (nu RAR) și reîncercați.";
+          } else {
+            msg = "Conversia a eșuat (cod " + res.status + "). Folosiți arhivă ZIP, nu RAR.";
+          }
         }
         throw new Error(msg);
       }

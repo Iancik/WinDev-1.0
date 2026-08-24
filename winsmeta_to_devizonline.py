@@ -242,10 +242,22 @@ def _safe_row(table: Table, row) -> Dict[str, Any]:
     return result
 
 
+def _kos_file(kos_path: str, name: str) -> Optional[str]:
+    """Găsește un fișier KOS ignorând majuscule (Linux vs. Windows)."""
+    want = name.upper()
+    try:
+        for entry in os.listdir(kos_path):
+            if entry.upper() == want:
+                return os.path.join(kos_path, entry)
+    except OSError:
+        return None
+    return None
+
+
 def _read_dane(kos_path: str) -> ProjectInfo:
     info = ProjectInfo()
-    dane_path = os.path.join(kos_path, "DANE.DB")
-    if not os.path.isfile(dane_path):
+    dane_path = _kos_file(kos_path, "DANE.DB")
+    if not dane_path:
         return info
 
     table = Table(dane_path, encoding="cp1250")
@@ -270,42 +282,42 @@ def load_kos(kos_path: str) -> KosData:
     if not os.path.isdir(kos_path):
         raise FileNotFoundError(f"Folderul KOS nu există: {kos_path}")
 
-    poz_path = os.path.join(kos_path, "POZYCJE.DB")
-    if not os.path.isfile(poz_path):
+    poz_path = _kos_file(kos_path, "POZYCJE.DB")
+    if not poz_path:
         raise FileNotFoundError(f"Nu am găsit POZYCJE.DB în {kos_path}")
 
     poz_t = Table(poz_path, encoding="cp1250")
     pozycje = {row["Nr"]: _safe_row(poz_t, row) for row in poz_t}
 
     naklady: Dict[int, List[Dict[str, Any]]] = {}
-    nak_path = os.path.join(kos_path, "NAKLADY.DB")
-    if os.path.isfile(nak_path):
+    nak_path = _kos_file(kos_path, "NAKLADY.DB")
+    if nak_path:
         nak_t = Table(nak_path, encoding="cp1250")
         for row in nak_t:
             item = _safe_row(nak_t, row)
             naklady.setdefault(item["NrPoz"], []).append(item)
 
     indeks: Dict[int, Dict[str, Any]] = {}
-    ind_path = os.path.join(kos_path, "INDEKS.DB")
-    if os.path.isfile(ind_path):
+    ind_path = _kos_file(kos_path, "INDEKS.DB")
+    if ind_path:
         ind_t = Table(ind_path, encoding="cp1250")
         indeks = {row["NrInd"]: _safe_row(ind_t, row) for row in ind_t}
 
     jedn: Dict[int, Dict[str, Any]] = {}
-    jed_path = os.path.join(kos_path, "JEDN.DB")
-    if os.path.isfile(jed_path):
+    jed_path = _kos_file(kos_path, "JEDN.DB")
+    if jed_path:
         jed_t = Table(jed_path, encoding="cp1250")
         jedn = {row["Nr"]: _safe_row(jed_t, row) for row in jed_t}
 
     defnarz: Dict[int, Dict[str, Any]] = {}
-    def_path = os.path.join(kos_path, "DEFNARZ.DB")
-    if os.path.isfile(def_path):
+    def_path = _kos_file(kos_path, "DEFNARZ.DB")
+    if def_path:
         def_t = Table(def_path, encoding="cp1250")
         defnarz = {row["NrNarzutu"]: _safe_row(def_t, row) for row in def_t}
 
     narzuty: Dict[int, List[Dict[str, Any]]] = {}
-    nar_path = os.path.join(kos_path, "NARZUTY.DB")
-    if os.path.isfile(nar_path):
+    nar_path = _kos_file(kos_path, "NARZUTY.DB")
+    if nar_path:
         nar_t = Table(nar_path, encoding="cp1250")
         for row in nar_t:
             item = _safe_row(nar_t, row)
