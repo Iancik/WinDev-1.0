@@ -29,7 +29,7 @@ app = Flask(
 app.config["MAX_CONTENT_LENGTH"] = 80 * 1024 * 1024
 app.config["SEND_FILE_MAX_AGE_DEFAULT"] = 0
 
-BUILD_ID = "15"
+BUILD_ID = "16"
 
 
 def _watch_worker(proc: subprocess.Popen, job_id: str) -> None:
@@ -68,7 +68,20 @@ def too_large(_exc):
 
 
 @app.route("/")
-def index():
+def prezentare():
+    resp = app.make_response(
+        render_template(
+            "prezentare.html",
+            build=BUILD_ID,
+            convert_url="/convert",
+        )
+    )
+    resp.headers["Cache-Control"] = "no-store"
+    return resp
+
+
+@app.route("/convert")
+def convert_page():
     resp = app.make_response(render_template("index.html", build=BUILD_ID))
     resp.headers["Cache-Control"] = "no-store"
     return resp
