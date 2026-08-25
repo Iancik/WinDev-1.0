@@ -29,7 +29,7 @@ app = Flask(
 app.config["MAX_CONTENT_LENGTH"] = 80 * 1024 * 1024
 app.config["SEND_FILE_MAX_AGE_DEFAULT"] = 0
 
-BUILD_ID = "17"
+BUILD_ID = "18"
 
 
 def _watch_worker(proc: subprocess.Popen, job_id: str) -> None:

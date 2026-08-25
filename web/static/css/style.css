@@ -72,11 +72,9 @@ body {
   align-items: center;
   justify-content: center;
   min-height: 72px;
-  padding: 0.45rem 0.7rem;
-  background: #000;
-  border: 1px solid var(--border);
-  border-radius: 12px;
-  overflow: hidden;
+  padding: 0;
+  background: none;
+  border: none;
 }
 
 .logo-frame:first-child {
