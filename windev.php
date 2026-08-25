@@ -1,9 +1,15 @@
 <?php
   $page = "windev";
-  $convertUrl = "https://windev-1-0.onrender.com/convert";
+  $convertUrl = "https://windev-1-0.onrender.com/";
   $onSite = file_exists(__DIR__ . "/assets/css/style.css");
-  $logoSoft = file_exists(__DIR__ . "/images/logo.png") ? "images/logo.png" : "logo.png";
-  $logoDeviz = file_exists(__DIR__ . "/images/logoDeviz360.png") ? "images/logoDeviz360.png" : "logoDeviz360.png";
+  $logoWinDev = "images/logoWinDev.png";
+  foreach (array("png", "webp", "jpg", "jpeg", "svg") as $ext) {
+    $candidate = "images/logoWinDev." . $ext;
+    if (file_exists(__DIR__ . "/" . $candidate)) {
+      $logoWinDev = $candidate;
+      break;
+    }
+  }
   $favicon = file_exists(__DIR__ . "/images/program-devize.ico") ? "/images/program-devize.ico" : "logo.ico";
   if (file_exists(__DIR__ . "/php/connect.php")) {
     include_once "php/connect.php";
@@ -91,8 +97,7 @@
           </div>
         </div>
         <div class="col-lg-6 order-1 order-lg-2 hero-img text-center">
-          <img src="<?php echo htmlspecialchars($logoSoft); ?>" class="img-fluid" alt="Softconstruct" style="max-height:80px;">
-          <img src="<?php echo htmlspecialchars($logoDeviz); ?>" class="img-fluid" alt="Deviz360" style="max-height:80px;">
+          <img src="<?php echo htmlspecialchars($logoWinDev); ?>" class="img-fluid" alt="WinDev" style="max-height: 420px;">
         </div>
       </div>
     </div>
@@ -137,7 +142,6 @@
         </div>
       </div>
     </div>
-    <?php if (file_exists(__DIR__ . "/call-to-action.php")) { include "call-to-action.php"; } ?>
   </section>
 
   <section id="services" class="services section-bg">
@@ -176,7 +180,6 @@
         </div>
       </div>
     </div>
-    <?php if (file_exists(__DIR__ . "/call-to-action.php")) { include "call-to-action.php"; } ?>
   </section>
 
   <section id="why-us" class="why-us section-bg">
@@ -235,7 +238,6 @@
         </div>
       </div>
     </div>
-    <?php if (file_exists(__DIR__ . "/call-to-action.php")) { include "call-to-action.php"; } ?>
   </section>
 
   <footer id="footer">

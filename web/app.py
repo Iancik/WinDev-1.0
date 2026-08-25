@@ -11,7 +11,7 @@ import threading
 import time
 import uuid
 
-from flask import Flask, jsonify, render_template, request, send_file, send_from_directory
+from flask import Flask, jsonify, redirect, render_template, request, send_file, send_from_directory
 from werkzeug.exceptions import RequestEntityTooLarge
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -29,7 +29,7 @@ app = Flask(
 app.config["MAX_CONTENT_LENGTH"] = 80 * 1024 * 1024
 app.config["SEND_FILE_MAX_AGE_DEFAULT"] = 0
 
-BUILD_ID = "16"
+BUILD_ID = "17"
 
 
 def _watch_worker(proc: subprocess.Popen, job_id: str) -> None:
@@ -68,23 +68,15 @@ def too_large(_exc):
 
 
 @app.route("/")
-def prezentare():
-    resp = app.make_response(
-        render_template(
-            "prezentare.html",
-            build=BUILD_ID,
-            convert_url="/convert",
-        )
-    )
+def index():
+    resp = app.make_response(render_template("index.html", build=BUILD_ID))
     resp.headers["Cache-Control"] = "no-store"
     return resp
 
 
 @app.route("/convert")
 def convert_page():
-    resp = app.make_response(render_template("index.html", build=BUILD_ID))
-    resp.headers["Cache-Control"] = "no-store"
-    return resp
+    return redirect("/", code=301)
 
 
 @app.route("/favicon.ico")
