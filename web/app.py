@@ -29,7 +29,7 @@ app = Flask(
 app.config["MAX_CONTENT_LENGTH"] = 80 * 1024 * 1024
 app.config["SEND_FILE_MAX_AGE_DEFAULT"] = 0
 
-BUILD_ID = "19"
+BUILD_ID = "20"
 SITE_URL = os.environ.get("SITE_URL", "https://windevconvertor.me").rstrip("/")
 
 
@@ -100,18 +100,11 @@ def robots_txt():
 
 @app.route("/sitemap.xml")
 def sitemap_xml():
-    body = f"""<?xml version="1.0" encoding="UTF-8"?>
-<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
-  <url>
-    <loc>{SITE_URL}/</loc>
-    <changefreq>weekly</changefreq>
-    <priority>1.0</priority>
-  </url>
-</urlset>
-"""
-    resp = app.make_response(body)
-    resp.mimetype = "application/xml"
-    return resp
+    return send_from_directory(
+        app.static_folder,
+        "sitemap.xml",
+        mimetype="application/xml",
+    )
 
 
 @app.route("/convert")
