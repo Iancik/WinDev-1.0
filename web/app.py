@@ -29,7 +29,8 @@ app = Flask(
 app.config["MAX_CONTENT_LENGTH"] = 80 * 1024 * 1024
 app.config["SEND_FILE_MAX_AGE_DEFAULT"] = 0
 
-BUILD_ID = "18"
+BUILD_ID = "19"
+SITE_URL = os.environ.get("SITE_URL", "https://windevconvertor.me").rstrip("/")
 
 
 def _watch_worker(proc: subprocess.Popen, job_id: str) -> None:
@@ -69,8 +70,47 @@ def too_large(_exc):
 
 @app.route("/")
 def index():
-    resp = app.make_response(render_template("index.html", build=BUILD_ID))
-    resp.headers["Cache-Control"] = "no-store"
+    resp = app.make_response(
+        render_template(
+            "index.html",
+            build=BUILD_ID,
+            site_url=SITE_URL,
+            google_site_verification=os.environ.get("GOOGLE_SITE_VERIFICATION", ""),
+        )
+    )
+    resp.headers["Cache-Control"] = "public, max-age=300"
+    return resp
+
+
+@app.route("/robots.txt")
+def robots_txt():
+    body = "\n".join(
+        [
+            "User-agent: *",
+            "Allow: /",
+            "Disallow: /api/",
+            f"Sitemap: {SITE_URL}/sitemap.xml",
+            "",
+        ]
+    )
+    resp = app.make_response(body)
+    resp.mimetype = "text/plain"
+    return resp
+
+
+@app.route("/sitemap.xml")
+def sitemap_xml():
+    body = f"""<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+  <url>
+    <loc>{SITE_URL}/</loc>
+    <changefreq>weekly</changefreq>
+    <priority>1.0</priority>
+  </url>
+</urlset>
+"""
+    resp = app.make_response(body)
+    resp.mimetype = "application/xml"
     return resp
 
 

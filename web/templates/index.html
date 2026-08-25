@@ -3,7 +3,40 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>WinDev — Winsmeta → Deviz360</title>
+  <title>Convertor Winsmeta → Deviz360 | WinDev</title>
+  <meta name="description" content="Convertor Winsmeta online: transformați proiectele Winsmeta (.KOS) în fișier Excel pentru import în Deviz360. Încărcați arhiva ZIP și descărcați conversia.">
+  <meta name="keywords" content="convertor Winsmeta, convertor winsmeta, Winsmeta Deviz360, convertor KOS, WinDev, import Deviz360, Winsmeta online">
+  <meta name="robots" content="index, follow">
+  <link rel="canonical" href="{{ site_url }}/">
+  {% if google_site_verification %}
+  <meta name="google-site-verification" content="{{ google_site_verification }}">
+  {% endif %}
+  <meta property="og:type" content="website">
+  <meta property="og:locale" content="ro_RO">
+  <meta property="og:url" content="{{ site_url }}/">
+  <meta property="og:title" content="Convertor Winsmeta → Deviz360 | WinDev">
+  <meta property="og:description" content="Convertor online Winsmeta (KOS) în Deviz360. Încărcați ZIP-ul proiectului și descărcați Excel-ul pentru import.">
+  <meta property="og:image" content="{{ site_url }}{{ url_for('static', filename='img/logo.ico') }}">
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "WebApplication",
+    "name": "WinDev — Convertor Winsmeta",
+    "url": "{{ site_url }}/",
+    "applicationCategory": "BusinessApplication",
+    "operatingSystem": "Web",
+    "description": "Convertor online Winsmeta (.KOS) către Deviz360 (.xlsx).",
+    "offers": {
+      "@type": "Offer",
+      "price": "0",
+      "priceCurrency": "MDL"
+    },
+    "publisher": {
+      "@type": "Organization",
+      "name": "Softconstruct"
+    }
+  }
+  </script>
   <link rel="icon" href="{{ url_for('static', filename='img/logo.ico') }}?v={{ build }}" type="image/x-icon">
   <link rel="shortcut icon" href="{{ url_for('static', filename='img/logo.ico') }}?v={{ build }}" type="image/x-icon">
   <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -26,7 +59,7 @@
         <div class="logo-bridge">
           <p class="bridge-kicker">convertor</p>
           <h1>WinDev</h1>
-          <p class="tagline">Winsmeta → Deviz360</p>
+          <p class="tagline">Convertor Winsmeta → Deviz360</p>
         </div>
         <div class="logo-frame">
           <img
@@ -54,10 +87,10 @@
 
     <main class="main">
       <section class="card hero-card">
-        <h2>Convertor online</h2>
+        <h2>Convertor Winsmeta online</h2>
         <p class="lead">
-          Încărcați arhiva <strong>ZIP</strong> a folderului proiectului Winsmeta
-          (ex: <code>CS1.KOS</code>). Pe serverul online folosiți ZIP, nu RAR.
+          Convertor Winsmeta → Deviz360: încărcați arhiva <strong>ZIP</strong> a folderului
+          proiectului Winsmeta (ex: <code>CS1.KOS</code>). Pe serverul online folosiți ZIP, nu RAR.
         </p>
 
         <form id="convert-form" class="upload-form">

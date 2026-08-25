@@ -1,6 +1,6 @@
 <?php
   $page = "windev";
-  $convertUrl = "https://windev-1-0.onrender.com/";
+  $convertUrl = "https://windevconvertor.me/";
   $onSite = file_exists(__DIR__ . "/assets/css/style.css");
   $logoWinDev = "images/logoWinDev.png";
   foreach (array("png", "webp", "jpg", "jpeg", "svg") as $ext) {
@@ -97,7 +97,7 @@
           </div>
         </div>
         <div class="col-lg-6 order-1 order-lg-2 hero-img text-center">
-          <img src="<?php echo htmlspecialchars($logoWinDev); ?>" class="img-fluid" alt="WinDev" style="max-height: 420px;">
+          <img src="<?php echo htmlspecialchars($logoWinDev); ?>" class="img-fluid" alt="WinDev" style="max-height: 320px;">
         </div>
       </div>
     </div>
